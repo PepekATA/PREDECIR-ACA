@@ -1,0 +1,28 @@
+services:
+  # Dashboard web
+  - type: web
+    name: papa-dinero-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run streamlit_app.py --server.port=$PORT --server.address=0.0.0.0
+    envVars:
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_SECRET_KEY
+        sync: false
+      - key: PAPER_TRADING
+        value: "True"
+
+  # Bot de trading (worker)
+  - type: worker
+    name: papa-dinero-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_SECRET_KEY
+        sync: false
+      - key: PAPER_TRADING
+        value: "True"
