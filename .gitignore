@@ -66,6 +66,6 @@ credentials.*
 api_keys.*
 secrets.*
 
-
+docker-compose.yml
 ORIGINALmain.py
 basura app.py
