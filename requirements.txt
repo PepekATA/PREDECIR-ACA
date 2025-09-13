@@ -14,8 +14,6 @@ pytz==2023.3
 # Async support
 aiohttp==3.8.2
 aiofiles==23.2.1
-asyncio
-
 
 # Trading and crypto
 ccxt==4.1.65
