@@ -11,6 +11,99 @@ import asyncio
 from datetime import datetime, timedelta
 import logging
 
+# Importar gestor de credenciales
+from modules.credentials_manager import CredentialsManager
+
+# Inicializar gestor de credenciales
+credentials_manager = CredentialsManager()
+
+# Función para mostrar configuración de credenciales
+def show_credentials_setup():
+    """Mostrar interfaz de configuración de credenciales"""
+    st.markdown("""
+    <div class="ai-brain">
+        <h2>🔐 Configuración de API - Alpaca Markets</h2>
+        <p>Para comenzar a operar, ingresa tus credenciales de Alpaca:</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("credentials_form"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📊 Credenciales API")
+            api_key = st.text_input(
+                "🔑 API Key", 
+                type="password",
+                help="Tu API Key de Alpaca Markets"
+            )
+            
+            api_secret = st.text_input(
+                "🔒 Secret Key", 
+                type="password",
+                help="Tu Secret Key de Alpaca Markets"
+            )
+        
+        with col2:
+            st.subheader("⚙️ Configuración")
+            paper_trading = st.radio(
+                "🎮 Modo de Trading:",
+                ["Paper Trading (Recomendado)", "Live Trading"],
+                index=0,
+                help="Paper Trading para pruebas, Live Trading para dinero real"
+            )
+            
+            st.info("""
+            **📋 Cómo obtener credenciales:**
+            1. Registrarse en alpaca.markets
+            2. Ir a 'API Keys' en el dashboard
+            3. Crear nuevas credenciales
+            4. Copiar API Key y Secret Key
+            """)
+        
+        submitted = st.form_submit_button(
+            "💾 Guardar Credenciales", 
+            type="primary",
+            use_container_width=True
+        )
+        
+        if submitted:
+            if api_key and api_secret:
+                paper_mode = paper_trading == "Paper Trading (Recomendado)"
+                
+                if credentials_manager.save_credentials(api_key, api_secret, paper_mode):
+                    st.success("✅ Credenciales guardadas correctamente!")
+                    st.info("🔄 Recargando aplicación...")
+                    time.sleep(2)
+                    st.rerun()
+                else:
+                    st.error("❌ Error guardando credenciales")
+            else:
+                st.error("⚠️ Por favor completa todos los campos")
+
+# Verificar si existen credenciales al inicio
+def check_credentials_and_initialize():
+    """Verificar credenciales e inicializar bot"""
+    global bot_available, credentials_manager
+    
+    if credentials_manager.credentials_exist():
+        credentials = credentials_manager.load_credentials()
+        if credentials:
+            # Configurar variables de entorno
+            os.environ['ALPACA_API_KEY'] = credentials['api_key']
+            os.environ['ALPACA_SECRET_KEY'] = credentials['api_secret']
+            os.environ['PAPER_TRADING'] = str(credentials['paper_trading'])
+            
+            # Intentar inicializar bot
+            try:
+                # Aquí puedes intentar conectar con tu bot
+                bot_available = True
+                return True
+            except Exception as e:
+                st.error(f"Error conectando con Alpaca: {e}")
+                return False
+    return False
+
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("StreamlitApp")
