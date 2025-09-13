@@ -338,4 +338,190 @@ with col3:
             <h3>🎮 DEMO MODE</h3>
             <p>🤖 <strong>Simulation:</strong> Active</p>
             <p>📊 <strong>Predictions:</strong> Mock Data</p>
-            <p>💻
+            <p>💻 <strong>Deploy:</strong> GitHub + Render</p>
+            <p>🔧 <strong>Setup:</strong> Add API Keys</p>
+            <p>🚀 <strong>Go Live:</strong> Ready!</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Métricas de rendimiento
+    if show_metrics:
+        st.subheader("📈 Performance Metrics")
+        
+        # Datos de ejemplo o reales
+        metrics = {
+            'total_trades': 45,
+            'win_rate': 82.2,
+            'total_pnl': 1247.80,
+            'best_trade': 18.5,
+            'never_sold_loss': True
+        }
+        
+        st.metric("Total Trades", metrics['total_trades'])
+        st.metric("Win Rate", f"{metrics['win_rate']:.1f}%")
+        st.metric("Total P&L", f"${metrics['total_pnl']:.2f}")
+        st.metric("Best Trade", f"+{metrics['best_trade']:.1f}%")
+        
+        if metrics['never_sold_loss']:
+            st.success("💎 NEVER SOLD AT LOSS: ✅")
+
+# Gráfico principal
+st.subheader("📊 Market Analysis")
+
+# Crear gráfico demo
+@st.cache_data(ttl=300)  # Cache por 5 minutos
+def create_market_chart():
+    # Generar datos de precio simulados
+    dates = pd.date_range(start=datetime.now() - timedelta(hours=24), periods=1440, freq='1min')
+    
+    # Precio base con tendencia y ruido
+    base_price = 45000
+    trend = np.linspace(0, 2000, len(dates))  # Tendencia alcista
+    noise = np.random.normal(0, 200, len(dates))  # Ruido
+    prices = base_price + trend + np.cumsum(noise * 0.1)
+    
+    # Crear DataFrame
+    df = pd.DataFrame({
+        'timestamp': dates,
+        'price': prices,
+        'ma_short': pd.Series(prices).rolling(20).mean(),
+        'ma_long': pd.Series(prices).rolling(50).mean()
+    })
+    
+    return df
+
+chart_data = create_market_chart()
+
+# Crear gráfico con plotly
+fig = go.Figure()
+
+# Precio principal
+fig.add_trace(go.Scatter(
+    x=chart_data['timestamp'],
+    y=chart_data['price'],
+    mode='lines',
+    name='BTC/USD',
+    line=dict(color='#00ff88', width=2)
+))
+
+# Medias móviles
+fig.add_trace(go.Scatter(
+    x=chart_data['timestamp'],
+    y=chart_data['ma_short'],
+    mode='lines',
+    name='MA 20',
+    line=dict(color='#ffbb33', width=1),
+    opacity=0.7
+))
+
+fig.add_trace(go.Scatter(
+    x=chart_data['timestamp'],
+    y=chart_data['ma_long'],
+    mode='lines',
+    name='MA 50',
+    line=dict(color='#ff4444', width=1),
+    opacity=0.7
+))
+
+# Configurar layout
+fig.update_layout(
+    title="🤖 AI Trading Signals - BTC/USD (Demo)",
+    xaxis_title="Time",
+    yaxis_title="Price (USD)",
+    height=400,
+    template="plotly_dark",
+    showlegend=True,
+    legend=dict(x=0, y=1),
+    margin=dict(l=0, r=0, t=40, b=0)
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+# Sección de alertas y noticias
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("🚨 System Alerts")
+    
+    alerts = [
+        {"type": "success", "msg": "🎯 ETH position +12.5% - Consider taking profit"},
+        {"type": "info", "msg": "🤖 AI detected bullish pattern in SOL"},
+        {"type": "warning", "msg": "💎 ADA position -8% - HOLDING (Never sell loss)"},
+        {"type": "info", "msg": "📊 Market sentiment: BULLISH (72%)"}
+    ]
+    
+    for alert in alerts:
+        if alert["type"] == "success":
+            st.success(alert["msg"])
+        elif alert["type"] == "warning":
+            st.warning(alert["msg"])
+        else:
+            st.info(alert["msg"])
+
+with col2:
+    st.subheader("📰 AI Insights")
+    
+    insights = [
+        "🧠 Neural networks detected strong uptrend continuation",
+        "📈 Volume analysis suggests accumulation phase",
+        "🎯 Support level confirmed at $44,500",
+        "⚡ High probability setup detected in 3 assets",
+        "💡 Risk/reward ratio optimal for new entries"
+    ]
+    
+    for insight in insights:
+        st.markdown(f"• {insight}")
+
+# Footer con estadísticas
+st.markdown("---")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric("🤖 AI Accuracy", "87.3%", "↗ +2.1%")
+    
+with col2:
+    st.metric("💰 Portfolio Value", "$12,547", "↗ +$247")
+    
+with col3:
+    st.metric("📊 Active Positions", "6", "→ 0")
+    
+with col4:
+    st.metric("💎 Never Sold Loss", "100%", "✅")
+
+# Información sobre deployment
+st.markdown("---")
+st.markdown("""
+### 🚀 Deploy on Render.com
+
+**Quick Setup:**
+1. Fork este repo en GitHub
+2. Crear nuevo Web Service en Render
+3. Conectar tu repositorio
+4. Configurar variables de entorno:
+   - `ALPACA_API_KEY`
+   - `ALPACA_SECRET_KEY`
+   - `PAPER_TRADING=True`
+5. Deploy automático!
+
+**Features:**
+- ✅ 24/7 AI Trading
+- ✅ Never Sell at Loss
+- ✅ Real-time Dashboard  
+- ✅ Secure Credentials
+- ✅ Auto-scaling
+""")
+
+# Auto-refresh
+if auto_refresh and not bot_available:  # Solo en modo demo
+    time.sleep(refresh_interval)
+    st.rerun()
+
+# Footer
+st.markdown("""
+---
+<div style='text-align: center; color: #888; padding: 20px;'>
+    <p>🧠 PAPA-DINERO AI Crypto Bot | 💎 Never Sell at Loss Strategy</p>
+    <p>⚡ Powered by Advanced AI | 🚀 Deploy on Render.com</p>
+</div>
+""", unsafe_allow_html=True)
