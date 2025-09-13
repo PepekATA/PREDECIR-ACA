@@ -1,3 +1,4 @@
+# Core libraries
 streamlit==1.49.1
 pandas==2.3.2
 numpy==2.3.3
@@ -9,38 +10,35 @@ tensorflow==2.20.0
 yfinance==0.2.50
 ta==0.11.0
 joblib==1.5.2
-python-dateutil==2.9.0
+python-dateutil>=2.9.0,<3.0.0
 pytz==2025.2
 
-
+# Trading and crypto
 ccxt==4.5.3
 cryptography==45.0.7
 aiohttp==3.12.15
 SQLAlchemy==2.0.43
 python-telegram-bot==22.3
-# can't be hard-pinned due to telegram-bot pinning httpx with ~
 httpx>=0.24.1
 humanize==4.13.0
 cachetools==6.2.0
-requests==2.32.5
 urllib3==2.5.0
 certifi==2025.8.3
 jsonschema==4.25.1
 tabulate==0.9.0
 pycoingecko==3.2.0
 jinja2==3.1.6
-joblib==1.5.2
 rich==14.1.0
-pyarrow==21.0.0; platform_machine != 'armv7l' and platform_machine != "aarch64"
-# TODO: downgrade for aarch64 until https://github.com/apache/arrow/issues/47229 is resolved
-pyarrow==20.0.0;  platform_machine == "aarch64"
 
-# Load ticker files 30% faster
+# Arrow (with platform check)
+pyarrow==21.0.0; platform_machine != 'armv7l' and platform_machine != "aarch64"
+pyarrow==20.0.0; platform_machine == "aarch64"
+
+# JSON optimization
 python-rapidjson==1.21
-# Properly format api responses
 orjson==3.11.3
 
-# Notify systemd
+# System notifications
 sdnotify==0.3.2
 
 # API Server
@@ -51,19 +49,17 @@ pyjwt==2.10.1
 aiofiles==24.1.0
 psutil==7.0.0
 
-# Building config files interactively
+# Interactive config tools
 questionary==2.1.1
 prompt-toolkit==3.0.52
-# Extensions to datetime library
-python-dateutil==2.9.0.post0
-pytz==2025.2
 
-#Futures
+# Futures scheduling
 schedule==1.2.2
 
-#WS Messages
+# WebSockets
 websockets==15.0.1
 janus==2.0.0
 
+# Misc
 ast-comments==1.2.3
 packaging==25.0
