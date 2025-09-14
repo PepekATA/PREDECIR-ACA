@@ -165,4 +165,68 @@ except ImportError:
                 if self.credentials_file.exists():
                     with open(self.credentials_file, 'r') as f:
                         return json.load(f)
-     
+                else:
+                    return None
+            except Exception as e:
+                st.error(f"Error cargando credenciales: {e}")
+                return None
+
+    credentials_manager = BasicCredentialsManager()
+
+# =======================
+# INTERFAZ STREAMLIT
+# =======================
+
+st.markdown("<div class='main-header'><h1>🤖 PAPA-DINERO - AI Crypto Trading Bot</h1></div>", unsafe_allow_html=True)
+
+st.markdown("<div class='never-sell-loss'>💎 Estrategia: NUNCA VENDER EN PÉRDIDA - SIEMPRE GANANCIA</div>", unsafe_allow_html=True)
+
+# Panel para credenciales
+with st.expander("🔑 Configuración de credenciales Alpaca", expanded=True):
+    cred = credentials_manager.load_credentials()
+    if cred:
+        st.success(f"Credenciales cargadas. Modo: {'Paper' if cred.get('paper_trading', True) else 'Live'}")
+        st.write(cred)
+    else:
+        with st.form("credentials_form"):
+            api_key = st.text_input("ALPACA_API_KEY")
+            api_secret = st.text_input("ALPACA_SECRET_KEY", type="password")
+            paper_trading = st.checkbox("Modo Paper Trading", value=True)
+            submitted = st.form_submit_button("Guardar credenciales")
+            if submitted:
+                ok = credentials_manager.save_credentials(api_key, api_secret, paper_trading)
+                if ok:
+                    st.success("Credenciales guardadas correctamente")
+                else:
+                    st.error("No se pudieron guardar las credenciales.")
+
+# Estado del bot
+bot_state_file = Path('data') / 'bot_state.json'
+bot_state = {}
+if bot_state_file.exists():
+    with open(bot_state_file, 'r') as f:
+        bot_state = json.load(f)
+
+st.markdown("<h2>📊 Estado actual del bot</h2>", unsafe_allow_html=True)
+if bot_state:
+    st.json(bot_state)
+else:
+    st.warning("No se ha inicializado el bot aún. Ejecuta el bot principal para comenzar.")
+
+# Placeholder para panel visual
+st.markdown("<h2>📈 Panel de Trading y Predicciones</h2>", unsafe_allow_html=True)
+st.info("Esta sección mostrará métricas, gráficos y predicciones de trading en tiempo real cuando el bot esté en ejecución.")
+
+# Ejemplo demo de gráfico
+demo_data = pd.DataFrame({
+    "Time": pd.date_range(datetime.now() - timedelta(hours=10), periods=10, freq="H"),
+    "BTCUSD": np.random.normal(44000, 500, 10),
+    "ETHUSD": np.random.normal(3300, 80, 10),
+})
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+fig.add_trace(go.Scatter(x=demo_data["Time"], y=demo_data["BTCUSD"], name="BTCUSD", line=dict(color="blue")), secondary_y=False)
+fig.add_trace(go.Scatter(x=demo_data["Time"], y=demo_data["ETHUSD"], name="ETHUSD", line=dict(color="green")), secondary_y=True)
+fig.update_layout(title_text="Demo precios BTC y ETH")
+st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("<div class='ai-brain'>🧠 Módulo de IA: Aquí se mostrarán predicciones automáticas si el bot está conectado.</div>", unsafe_allow_html=True)
