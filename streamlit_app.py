@@ -1,5 +1,5 @@
 # ====================================================================
-# PAPA-DINERO AI CRYPTO BOT - VERSIÓN FINAL COMPLETA
+# PAPA-DINERO AI CRYPTO BOT - VERSIÓN FINAL DEFINITIVA
 # ====================================================================
 
 import streamlit as st
@@ -7,27 +7,26 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
-import os
 import time
-import json
+import os
 import logging
 from pathlib import Path
 
 # ====================================================================
-# CONFIGURACIÓN DE LOGGING
+# LOGGING
 # ====================================================================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("PapaDineroBot")
 
 # ====================================================================
-# CREACIÓN DE DIRECTORIOS
+# DIRECTORIOS
 # ====================================================================
 os.makedirs('modules', exist_ok=True)
 os.makedirs('data', exist_ok=True)
 os.makedirs('models', exist_ok=True)
 
 # ====================================================================
-# IMPORTACIÓN DE MÓDULOS INTERNOS
+# MÓDULOS INTERNOS
 # ====================================================================
 from modules.credentials_manager import CredentialsManager
 from modules.memory_system import MemorySystem
@@ -44,7 +43,7 @@ from modules.neural_models import NeuralModels
 from modules.settings import Settings
 
 # ====================================================================
-# CONFIGURACIÓN DE STREAMLIT
+# STREAMLIT CONFIG
 # ====================================================================
 st.set_page_config(
     page_title="🧠 PAPA-DINERO AI CRYPTO BOT",
@@ -59,6 +58,7 @@ st.set_page_config(
 credentials_manager = CredentialsManager()
 memory_system = MemorySystem()
 settings = Settings()
+persistence_manager = PersistenceManager(memory_system)
 
 demo_mode_file = Path('data/demo_mode.json')
 
@@ -92,21 +92,22 @@ multi_symbol_trader = MultiSymbolTrader(trading_engine, ai_predictor, portfolio_
 dashboard_manager = DashboardManager()
 
 # ====================================================================
-# CONFIGURACIÓN DEL DASHBOARD
+# DASHBOARD
 # ====================================================================
-st.title("🧠 PAPA-DINERO AI CRYPTO BOT")
+st.title("🧠 PAPA-DINERO AI CRYPTO BOT - VERSIÓN DEFINITIVA")
 st.subheader(f"🚀 Modo {'Paper Trading' if paper_trading else 'Real Money'}")
 
-# ====================================================================
-# OPCIONES DE SIDEBAR
-# ====================================================================
+# Sidebar Controls
 with st.sidebar:
     st.header("⚙️ Configuración")
     auto_refresh = st.checkbox("🔄 Auto Refresh", value=True)
     refresh_interval = st.slider("Intervalo de actualización (segundos)", 10, 60, 30)
+    max_trade_percent = st.slider("Máx % de portfolio por orden", 1, 20, 5)
+    take_profit_pct = st.slider("Take Profit %", 1, 10, 3)
+    stop_loss_pct = st.slider("Stop Loss %", 1, 10, 2)
 
     st.markdown("---")
-    st.header("📊 Controles de visualización")
+    st.header("📊 Visualización")
     show_predictions = st.checkbox("Mostrar predicciones AI", value=True)
     show_portfolio = st.checkbox("Mostrar portfolio", value=True)
     show_metrics = st.checkbox("Mostrar métricas de desempeño", value=True)
@@ -117,16 +118,28 @@ with st.sidebar:
 
 def get_symbols():
     """Obtener lista de símbolos para trading"""
-    return settings.get_symbols()  # Puede estar definido en settings.py
+    return settings.get_symbols()
 
 def run_trading_cycle(symbols):
-    """Ejecutar ciclo completo: predecir, comprar, vender"""
+    """Ejecutar ciclo completo: predecir, comprar, vender, actualizar memoria"""
     market_data = data_manager.fetch_market_data(symbols)
     analysis = market_analyzer.analyze(market_data)
     predictions = ai_predictor.predict(analysis)
-    trades = multi_symbol_trader.execute_trades(predictions)
+    
+    trades = []
+    for p in predictions:
+        trade = multi_symbol_trader.execute_trade(
+            symbol=p['symbol'],
+            signal=p['signal'],
+            confidence=p['confidence'],
+            max_trade_percent=max_trade_percent,
+            take_profit_pct=take_profit_pct,
+            stop_loss_pct=stop_loss_pct
+        )
+        trades.append(trade)
+    
     portfolio_manager.update(trades)
-    memory_system.update_memory(predictions, trades)
+    persistence_manager.save()
     return predictions, portfolio_manager.get_portfolio()
 
 def plot_market_chart(symbol, market_data):
@@ -185,7 +198,7 @@ while True:
             st.markdown(f"{pos['symbol']}: {pos['quantity']} unidades, PnL: {pos['pnl_pct']:+.2f}%")
 
     # Gráficas
-    for symbol in symbols[:3]:  # Limitar a 3 por visualización
+    for symbol in symbols[:5]:  # Limitar a 5 por visualización
         market_data = data_manager.fetch_market_chart(symbol)
         plot_market_chart(symbol, market_data)
 
