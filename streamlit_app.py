@@ -1,221 +1,144 @@
-# ====================================================================
-# PAPA-DINERO AI CRYPTO BOT - VERSIÓN FINAL DEFINITIVA
-# ====================================================================
-
+# streamlit_app_production.py — PAPA-DINERO AI Crypto Bot vFinal PRO
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
-import time
-import os
-import logging
+from plotly.subplots import make_subplots
+import time, json, os, logging
+from datetime import datetime
 from pathlib import Path
 
 # ====================================================================
-# LOGGING
+# CONFIGURACIÓN
 # ====================================================================
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("PapaDineroBot")
+logger = logging.getLogger("PAPA-DINERO-PRO")
 
-# ====================================================================
-# DIRECTORIOS
-# ====================================================================
-os.makedirs('modules', exist_ok=True)
-os.makedirs('data', exist_ok=True)
-os.makedirs('models', exist_ok=True)
-
-# ====================================================================
-# MÓDULOS INTERNOS
-# ====================================================================
-from modules.credentials_manager import CredentialsManager
-from modules.memory_system import MemorySystem
-from modules.data_manager import DataManager
-from modules.market_analyzer import MarketAnalyzer
-from modules.ai_predictor import AIPredictor
-from modules.alpaca_trend_predictor import AlpacaTrendPredictor
-from modules.multi_symbol_trader import MultiSymbolTrader
-from modules.portfolio_manager import PortfolioManager
-from modules.trading_engine import TradingEngine
-from modules.dashboard import DashboardManager
-from modules.persistence_manager import PersistenceManager
-from modules.neural_models import NeuralModels
-from modules.settings import Settings
-
-# ====================================================================
-# STREAMLIT CONFIG
-# ====================================================================
 st.set_page_config(
-    page_title="🧠 PAPA-DINERO AI CRYPTO BOT",
+    page_title="🧠 PAPA-DINERO PRO - AI Crypto Bot",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+os.makedirs('modules', exist_ok=True)
+os.makedirs('data', exist_ok=True)
+
 # ====================================================================
-# CARGA DE CREDENCIALES Y DETECCIÓN DE MODO
+# CSS ESTÉTICO
+# ====================================================================
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+.main-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 15px; color: white; text-align: center; margin-bottom: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.3); font-family: 'Orbitron', monospace; }
+.ai-brain { background: #1a1a2e; color: #0ff1ce; padding: 1.5rem; border-radius: 15px; border: 2px solid #0ff1ce; margin: 1rem 0; font-family: 'Orbitron', monospace; animation: glow-ai 3s ease-in-out infinite alternate; }
+.metric-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 1.5rem; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); margin: 1rem 0; }
+@keyframes glow-ai { from { box-shadow: 0 0 10px #0ff1ce, 0 0 20px #0ff1ce; } to { box-shadow: 0 0 20px #0ff1ce, 0 0 30px #0ff1ce; } }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("<h1 class='main-header'>🧠 PAPA-DINERO PRO - AI Crypto Bot</h1>", unsafe_allow_html=True)
+
+# ====================================================================
+# IMPORTAR MÓDULOS INTERNOS
+# ====================================================================
+try:
+    from modules.credentials_manager import CredentialsManager
+    from modules.memory_system import MemorySystem
+    from modules.data_manager import DataManager
+    from modules.market_analyzer import MarketAnalyzer
+    from modules.ai_predictor import AIPredictor
+    from modules.trading_engine import TradingEngine
+    from modules.portfolio_manager import PortfolioManager
+    from modules.multi_symbol_trader import MultiSymbolTrader
+except ImportError as e:
+    st.error(f"No se pudieron cargar los módulos internos: {e}")
+    st.stop()
+
+# ====================================================================
+# CREDENCIALES Y DETECCIÓN DE TIPO DE CUENTA
 # ====================================================================
 credentials_manager = CredentialsManager()
-memory_system = MemorySystem()
-settings = Settings()
-persistence_manager = PersistenceManager(memory_system)
+credentials = credentials_manager.load_credentials()
 
-demo_mode_file = Path('data/demo_mode.json')
-
-if demo_mode_file.exists():
-    demo_mode = True
-    api_key = None
-    api_secret = None
-    paper_trading = True
+if not credentials:
+    st.info("Configura tus credenciales Alpaca")
+    api_key = st.text_input("API Key")
+    api_secret = st.text_input("API Secret")
+    paper_trading = st.checkbox("Paper Trading", value=True)
+    if st.button("Guardar Credenciales"):
+        credentials_manager.save_credentials(api_key, api_secret, paper_trading)
+        st.experimental_rerun()
 else:
-    creds = credentials_manager.load_credentials()
-    if creds:
-        api_key = creds.get('api_key')
-        api_secret = creds.get('api_secret')
-        paper_trading = creds.get('paper_trading', True)
-        demo_mode = False
-    else:
-        demo_mode = True
-        api_key = None
-        api_secret = None
-        paper_trading = True
+    account_type = "Paper Trading" if credentials.get('paper_trading', True) else "Real Money"
+    st.success(f"Cuenta detectada: {account_type}")
 
 # ====================================================================
-# INICIALIZACIÓN DE MÓDULOS
+# INICIALIZAR SISTEMAS
 # ====================================================================
+memory = MemorySystem()
 data_manager = DataManager()
 market_analyzer = MarketAnalyzer()
-ai_predictor = AIPredictor(memory_system)
+ai_predictor = AIPredictor(memory)
 portfolio_manager = PortfolioManager()
-trading_engine = TradingEngine(api_key, api_secret, paper_trading)
-multi_symbol_trader = MultiSymbolTrader(trading_engine, ai_predictor, portfolio_manager)
-dashboard_manager = DashboardManager()
+trading_engine = TradingEngine(credentials)
+multi_trader = MultiSymbolTrader(trading_engine, market_analyzer, ai_predictor, portfolio_manager)
 
 # ====================================================================
-# DASHBOARD
+# SIDEBAR CONTROLS
 # ====================================================================
-st.title("🧠 PAPA-DINERO AI CRYPTO BOT - VERSIÓN DEFINITIVA")
-st.subheader(f"🚀 Modo {'Paper Trading' if paper_trading else 'Real Money'}")
-
-# Sidebar Controls
-with st.sidebar:
-    st.header("⚙️ Configuración")
-    auto_refresh = st.checkbox("🔄 Auto Refresh", value=True)
-    refresh_interval = st.slider("Intervalo de actualización (segundos)", 10, 60, 30)
-    max_trade_percent = st.slider("Máx % de portfolio por orden", 1, 20, 5)
-    take_profit_pct = st.slider("Take Profit %", 1, 10, 3)
-    stop_loss_pct = st.slider("Stop Loss %", 1, 10, 2)
-
-    st.markdown("---")
-    st.header("📊 Visualización")
-    show_predictions = st.checkbox("Mostrar predicciones AI", value=True)
-    show_portfolio = st.checkbox("Mostrar portfolio", value=True)
-    show_metrics = st.checkbox("Mostrar métricas de desempeño", value=True)
+st.sidebar.title("Controles Bot PRO")
+auto_refresh = st.sidebar.checkbox("Auto-refresh", True)
+refresh_interval = st.sidebar.slider("Intervalo actualización (segundos)", 5, 60, 15)
+show_predictions = st.sidebar.checkbox("Mostrar predicciones AI", True)
+show_portfolio = st.sidebar.checkbox("Mostrar portafolio", True)
+show_metrics = st.sidebar.checkbox("Mostrar métricas del bot", True)
+max_risk_percent = st.sidebar.slider("Máximo % riesgo por orden", 1, 10, 2)
 
 # ====================================================================
-# FUNCIONES PRINCIPALES
+# LOOP PRINCIPAL DE TRADING
 # ====================================================================
-
-def get_symbols():
-    """Obtener lista de símbolos para trading"""
-    return settings.get_symbols()
-
-def run_trading_cycle(symbols):
-    """Ejecutar ciclo completo: predecir, comprar, vender, actualizar memoria"""
-    market_data = data_manager.fetch_market_data(symbols)
+placeholder = st.empty()
+while True:
+    # 1️⃣ Actualizar datos
+    market_data = data_manager.fetch_market_data()
+    
+    # 2️⃣ Analizar mercado
     analysis = market_analyzer.analyze(market_data)
+    
+    # 3️⃣ Predicciones AI
     predictions = ai_predictor.predict(analysis)
     
-    trades = []
-    for p in predictions:
-        trade = multi_symbol_trader.execute_trade(
-            symbol=p['symbol'],
-            signal=p['signal'],
-            confidence=p['confidence'],
-            max_trade_percent=max_trade_percent,
-            take_profit_pct=take_profit_pct,
-            stop_loss_pct=stop_loss_pct
-        )
-        trades.append(trade)
+    # 4️⃣ Ejecutar trading seguro
+    trades = multi_trader.execute(predictions, max_risk_percent=max_risk_percent)
     
-    portfolio_manager.update(trades)
-    persistence_manager.save()
-    return predictions, portfolio_manager.get_portfolio()
-
-def plot_market_chart(symbol, market_data):
-    """Gráfica de precios y medias móviles"""
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=market_data['timestamp'],
-        y=market_data['price'],
-        mode='lines',
-        name=f'{symbol} Price',
-        line=dict(color='#00ff88', width=2)
-    ))
-    fig.add_trace(go.Scatter(
-        x=market_data['timestamp'],
-        y=market_data['ma_short'],
-        mode='lines',
-        name='MA Short',
-        line=dict(color='#ffbb33', width=1),
-        opacity=0.7
-    ))
-    fig.add_trace(go.Scatter(
-        x=market_data['timestamp'],
-        y=market_data['ma_long'],
-        mode='lines',
-        name='MA Long',
-        line=dict(color='#ff4444', width=1),
-        opacity=0.7
-    ))
-    fig.update_layout(
-        title=f"📈 {symbol} Market Analysis",
-        xaxis_title="Time",
-        yaxis_title="Price",
-        template="plotly_dark",
-        height=400
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-# ====================================================================
-# BUCLE PRINCIPAL
-# ====================================================================
-symbols = get_symbols()
-
-while True:
-    predictions, portfolio = run_trading_cycle(symbols)
-
-    # Mostrar predicciones
-    if show_predictions:
-        st.subheader("🔮 Predicciones AI")
-        for p in predictions:
-            st.markdown(f"{p['symbol']}: {p['signal']} ({p['confidence']:.1%})")
-
-    # Mostrar portfolio
-    if show_portfolio:
-        st.subheader("💰 Portfolio")
-        for pos in portfolio:
-            st.markdown(f"{pos['symbol']}: {pos['quantity']} unidades, PnL: {pos['pnl_pct']:+.2f}%")
-
-    # Gráficas
-    for symbol in symbols[:5]:  # Limitar a 5 por visualización
-        market_data = data_manager.fetch_market_chart(symbol)
-        plot_market_chart(symbol, market_data)
-
-    # Métricas de desempeño
-    if show_metrics:
-        st.subheader("📊 Métricas")
-        metrics = portfolio_manager.get_metrics()
-        st.metric("Total Trades", metrics['total_trades'])
-        st.metric("Win Rate", f"{metrics['win_rate']:.1f}%")
-        st.metric("Total PnL", f"${metrics['total_pnl']:.2f}")
-        st.metric("Best Trade", f"+{metrics['best_trade']:.2f}%")
-        if metrics['never_sold_loss']:
-            st.success("💎 Never Sold at Loss: ✅")
-
-    # Auto-refresh
-    if auto_refresh:
-        time.sleep(refresh_interval)
-        st.experimental_rerun()
-    else:
+    # 5️⃣ Actualizar portafolio
+    portfolio = portfolio_manager.update(trades)
+    
+    # 6️⃣ Mostrar resultados en Streamlit
+    with placeholder.container():
+        st.markdown("<div class='ai-brain'>🤖 Predicciones AI & Trading</div>", unsafe_allow_html=True)
+        
+        if show_predictions:
+            st.dataframe(predictions)
+        
+        if show_portfolio:
+            st.markdown("<div class='metric-card'>💰 Portafolio</div>", unsafe_allow_html=True)
+            st.dataframe(portfolio)
+        
+        if show_metrics:
+            st.markdown("<div class='metric-card'>📊 Métricas</div>", unsafe_allow_html=True)
+            st.write({
+                "Memoria bot (nº eventos)": memory.size(),
+                "Última actualización": datetime.now()
+            })
+        
+        # Gráfica de precio vs predicción
+        fig = make_subplots(rows=1, cols=1)
+        fig.add_trace(go.Scatter(x=market_data['timestamp'], y=market_data['price'], name='Precio Real'))
+        fig.add_trace(go.Scatter(x=predictions['timestamp'], y=predictions['predicted_price'], name='Predicción AI'))
+        st.plotly_chart(fig, use_container_width=True)
+    
+    if not auto_refresh:
         break
+    time.sleep(refresh_interval)
