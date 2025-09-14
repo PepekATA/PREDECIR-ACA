@@ -1,3 +1,6 @@
+The user requires a Python script for an AI Crypto Trading Bot named "PAPA-DINERO". The bot's core strategy is "Never Sell at Loss - Always Profit". It should be developed using API integration, targeting an AI/ML Specialist, and include API integration as a key feature. The script should be in English and utilize a specific set of Python libraries.
+
+```python
 #!/usr/bin/env python3
 """
 PAPA-DINERO - AI Crypto Trading Bot
@@ -17,11 +20,11 @@ from datetime import datetime
 import traceback
 from pathlib import Path
 
-# Configurar el path de módulos
+# Configure module path
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
-# Configuración básica de logging
+# Basic logging configuration
 log_dir = current_dir / 'logs'
 log_dir.mkdir(exist_ok=True)
 
@@ -37,37 +40,37 @@ logging.basicConfig(
 logger = logging.getLogger("PAPA-DINERO")
 
 class PapaDineroBot:
-    """Bot de trading principal que coordina todos los módulos"""
+    """Main trading bot that coordinates all modules"""
     
     def __init__(self):
         self.running = False
         self.cycle_count = 0
         
-        # Estados de componentes
+        # Component states
         self.components = {}
         self.api_connected = False
         self.credentials = None
         
-        # Crear directorios necesarios
+        # Create necessary directories
         self.create_directories()
         
-        logger.info("🤖 PAPA-DINERO Bot inicializado")
-        logger.info("💎 Estrategia: NUNCA VENDER EN PÉRDIDA - SIEMPRE GANANCIA")
+        logger.info("🤖 PAPA-DINERO Bot initialized")
+        logger.info("💎 Strategy: NEVER SELL AT LOSS - ALWAYS PROFIT")
     
     def create_directories(self):
-        """Crear directorios necesarios"""
+        """Create necessary directories"""
         directories = ['data', 'logs', 'config']
         for directory in directories:
             os.makedirs(directory, exist_ok=True)
     
     def get_credentials_from_env(self):
-        """Obtener credenciales desde variables de entorno"""
+        """Get credentials from environment variables"""
         api_key = os.getenv('ALPACA_API_KEY')
         api_secret = os.getenv('ALPACA_SECRET_KEY')
         paper_trading = os.getenv('PAPER_TRADING', 'True').lower() == 'true'
         
         if not api_key or not api_secret:
-            logger.error("❌ Variables ALPACA_API_KEY y ALPACA_SECRET_KEY no encontradas")
+            logger.error("❌ ALPACA_API_KEY and ALPACA_SECRET_KEY variables not found")
             return None
         
         self.credentials = {
@@ -77,23 +80,23 @@ class PapaDineroBot:
             'base_url': 'https://paper-api.alpaca.markets' if paper_trading else 'https://api.alpaca.markets'
         }
         
-        logger.info(f"✅ Credenciales cargadas - Modo: {'Paper' if paper_trading else 'Live'}")
+        logger.info(f"✅ Credentials loaded - Mode: {'Paper' if paper_trading else 'Live'}")
         return self.credentials
     
     async def initialize_components(self):
-        """Inicializar componentes del bot de forma segura"""
+        """Initialize bot components securely"""
         try:
-            # Verificar credenciales
+            # Verify credentials
             if not self.get_credentials_from_env():
-                raise Exception("Credenciales no disponibles")
+                raise Exception("Credentials not available")
             
-            # Importar módulos dinámicamente para manejar errores
+            # Import modules dynamically to handle errors
             try:
                 from modules.memory_system import MemorySystem
                 self.components['memory'] = MemorySystem()
-                logger.info("✅ Sistema de memoria inicializado")
+                logger.info("✅ Memory system initialized")
             except ImportError as e:
-                logger.warning(f"⚠️ Memory system no disponible: {e}")
+                logger.warning(f"⚠️ Memory system not available: {e}")
                 self.components['memory'] = None
             
             try:
@@ -101,7 +104,7 @@ class PapaDineroBot:
                 if self.components['memory']:
                     self.components['trading'] = TradingEngine(self.components['memory'])
                     
-                    # Conectar API
+                    # Connect API
                     api_connected = self.components['trading'].initialize_api(
                         self.credentials['api_key'],
                         self.credentials['api_secret'],
@@ -110,45 +113,45 @@ class PapaDineroBot:
                     
                     if api_connected:
                         self.api_connected = True
-                        logger.info("✅ Trading engine conectado a Alpaca")
+                        logger.info("✅ Trading engine connected to Alpaca")
                     else:
-                        raise Exception("Error conectando a Alpaca API")
+                        raise Exception("Error connecting to Alpaca API")
                 else:
-                    raise Exception("Memory system requerido para trading engine")
+                    raise Exception("Memory system required for trading engine")
                     
             except Exception as e:
-                logger.error(f"❌ Trading engine no disponible: {e}")
+                logger.error(f"❌ Trading engine not available: {e}")
                 self.components['trading'] = None
             
-            # Otros componentes opcionales
+            # Other optional components
             try:
                 from modules.ai_predictor import AIPredictor
                 if self.components['memory']:
                     self.components['ai'] = AIPredictor(self.components['memory'])
-                    logger.info("✅ AI Predictor inicializado")
+                    logger.info("✅ AI Predictor initialized")
             except ImportError as e:
-                logger.warning(f"⚠️ AI Predictor no disponible: {e}")
+                logger.warning(f"⚠️ AI Predictor not available: {e}")
                 self.components['ai'] = None
             
             try:
                 from modules.portfolio_manager import PortfolioManager
                 self.components['portfolio'] = PortfolioManager()
-                logger.info("✅ Portfolio Manager inicializado")
+                logger.info("✅ Portfolio Manager initialized")
             except ImportError as e:
-                logger.warning(f"⚠️ Portfolio Manager no disponible: {e}")
+                logger.warning(f"⚠️ Portfolio Manager not available: {e}")
                 self.components['portfolio'] = None
             
-            # Crear archivo de estado para indicar que el bot está activo
+            # Create a state file to indicate the bot is active
             await self.create_bot_state_file()
             
             return self.api_connected
             
         except Exception as e:
-            logger.error(f"❌ Error inicializando componentes: {e}")
+            logger.error(f"❌ Error initializing components: {e}")
             return False
     
     async def create_bot_state_file(self):
-        """Crear archivo de estado para el dashboard"""
+        """Create state file for the dashboard"""
         try:
             state = {
                 'status': 'active' if self.api_connected else 'demo',
@@ -167,80 +170,80 @@ class PapaDineroBot:
             with open('data/bot_state.json', 'w') as f:
                 json.dump(state, f, indent=2)
                 
-            logger.info("✅ Archivo de estado creado")
+            logger.info("✅ State file created")
             
         except Exception as e:
-            logger.error(f"❌ Error creando archivo de estado: {e}")
+            logger.error(f"❌ Error creating state file: {e}")
     
     def get_active_symbols(self):
-        """Símbolos activos para trading"""
+        """Active symbols for trading"""
         return [
             'BTCUSD', 'ETHUSD', 'SOLUSD', 'AVAXUSD', 'ADAUSD',
             'DOTUSD', 'MATICUSD', 'LINKUSD', 'UNIUSD', 'AAVEUSD'
         ]
     
     async def run_trading_cycle(self):
-        """Ejecutar un ciclo completo de trading"""
+        """Execute a complete trading cycle"""
         if not self.api_connected or not self.components.get('trading'):
-            logger.warning("⚠️ API no conectada, saltando ciclo de trading")
+            logger.warning("⚠️ API not connected, skipping trading cycle")
             return {'status': 'skipped', 'reason': 'api_not_connected'}
         
         try:
             self.cycle_count += 1
             start_time = datetime.now()
             
-            logger.info(f"🔄 Ciclo #{self.cycle_count} - {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"🔄 Cycle #{self.cycle_count} - {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
             
-            # Obtener símbolos activos
+            # Get active symbols
             symbols = self.get_active_symbols()
             
-            # Ejecutar ciclo de trading automático
+            # Execute automatic trading cycle
             trading_engine = self.components['trading']
             ai_predictor = self.components.get('ai')
             
             if ai_predictor:
-                # Trading con IA
+                # Trading with AI
                 results = trading_engine.auto_trading_cycle(symbols, ai_predictor, max_positions=5)
             else:
-                # Trading básico sin IA
-                logger.info("🤖 Trading sin IA - usando análisis técnico básico")
+                # Basic trading without AI
+                logger.info("🤖 Trading without AI - using basic technical analysis")
                 results = await self.basic_trading_cycle(symbols)
             
-            # Actualizar archivo de estado
+            # Update state file
             await self.update_bot_state(results)
             
             cycle_time = (datetime.now() - start_time).total_seconds()
-            logger.info(f"⏱️ Ciclo completado en {cycle_time:.2f}s - Acciones: {len(results.get('actions_taken', []))}")
+            logger.info(f"⏱️ Cycle completed in {cycle_time:.2f}s - Actions taken: {len(results.get('actions_taken', []))}")
             
             return results
             
         except Exception as e:
-            logger.error(f"❌ Error en ciclo de trading: {e}")
+            logger.error(f"❌ Error in trading cycle: {e}")
             traceback.print_exc()
             return {'status': 'error', 'error': str(e)}
     
     async def basic_trading_cycle(self, symbols):
-        """Ciclo básico de trading sin IA"""
+        """Basic trading cycle without AI"""
         actions = []
         
         try:
             trading_engine = self.components['trading']
             
-            # Revisar posiciones existentes
+            # Review existing positions
             for symbol in list(trading_engine.positions.keys()):
                 if trading_engine.positions[symbol]['status'] == 'active':
                     try:
-                        # Obtener precio actual (simulado para demo)
-                        current_price = 45000  # Precio demo
+                        # Get current price (simulated for demo)
+                        current_price = 45000  # Demo price
                         
                         analysis = trading_engine.analyze_position_profitability(symbol, current_price)
                         
                         if analysis['can_sell'] and analysis['recommended_action'] == 'sell_profit':
-                            # Intentar venta (solo con ganancia)
-                            logger.info(f"💰 Intentando venta con ganancia: {symbol}")
+                            # Attempt to sell (only with profit)
+                            logger.info(f"💰 Attempting to sell with profit: {symbol}")
                             
                     except Exception as e:
-                        logger.error(f"Error analizando {symbol}: {e}")
+                        logger.error(f"Error analyzing {symbol}: {e}")
             
             return {
                 'timestamp': datetime.now().isoformat(),
@@ -250,11 +253,11 @@ class PapaDineroBot:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error en trading básico: {e}")
+            logger.error(f"❌ Error in basic trading: {e}")
             return {'error': str(e)}
     
     async def update_bot_state(self, trading_results):
-        """Actualizar estado del bot"""
+        """Update bot state"""
         try:
             state = {
                 'status': 'active' if self.api_connected else 'demo',
@@ -274,39 +277,39 @@ class PapaDineroBot:
                 json.dump(state, f, indent=2)
                 
         except Exception as e:
-            logger.error(f"❌ Error actualizando estado: {e}")
+            logger.error(f"❌ Error updating state: {e}")
     
     async def run_main_loop(self):
-        """Loop principal del bot"""
-        logger.info("🚀 Iniciando loop principal...")
+        """Main bot loop"""
+        logger.info("🚀 Starting main loop...")
         self.running = True
         
         while self.running:
             try:
-                # Ejecutar ciclo de trading
+                # Execute trading cycle
                 await self.run_trading_cycle()
                 
-                # Esperar 60 segundos entre ciclos
+                # Wait 60 seconds between cycles
                 await asyncio.sleep(60)
                 
             except KeyboardInterrupt:
-                logger.info("🛑 Interrupción manual")
+                logger.info("🛑 Manual interruption")
                 break
             except Exception as e:
-                logger.error(f"❌ Error en loop principal: {e}")
-                await asyncio.sleep(120)  # Esperar más tiempo si hay error
+                logger.error(f"❌ Error in main loop: {e}")
+                await asyncio.sleep(120)  # Wait longer if there's an error
     
     async def shutdown(self):
-        """Cierre ordenado"""
-        logger.info("🛑 Cerrando bot...")
+        """Graceful shutdown"""
+        logger.info("🛑 Shutting down bot...")
         self.running = False
         
         try:
-            # Guardar estado final
+            # Save final state
             if self.components.get('trading'):
                 self.components['trading'].save_trading_state()
             
-            # Actualizar estado a inactivo
+            # Update state to inactive
             with open('data/bot_state.json', 'w') as f:
                 json.dump({
                     'status': 'stopped',
@@ -314,36 +317,36 @@ class PapaDineroBot:
                     'total_cycles': self.cycle_count
                 }, f, indent=2)
             
-            logger.info("✅ Bot cerrado correctamente")
+            logger.info("✅ Bot shut down successfully")
             
         except Exception as e:
-            logger.error(f"❌ Error en cierre: {e}")
+            logger.error(f"❌ Error during shutdown: {e}")
 
 async def main():
-    """Función principal"""
+    """Main function"""
     bot = PapaDineroBot()
     
-    # Manejar señales de cierre
+    # Handle shutdown signals
     def signal_handler(signum, frame):
-        logger.info(f"🛑 Señal {signum} recibida")
+        logger.info(f"🛑 Signal {signum} received")
         asyncio.create_task(bot.shutdown())
     
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
     try:
-        # Inicializar componentes
+        # Initialize components
         if await bot.initialize_components():
-            logger.info("✅ Bot inicializado, comenzando trading...")
+            logger.info("✅ Bot initialized, starting trading...")
             await bot.run_main_loop()
         else:
-            logger.warning("⚠️ Bot iniciado en modo limitado (sin API)")
-            # Crear archivo de estado para demo
+            logger.warning("⚠️ Bot started in limited mode (no API)")
+            # Create state file for demo
             await bot.create_bot_state_file()
-            # Mantener vivo para Streamlit
+            # Keep alive for Streamlit
             while True:
                 await asyncio.sleep(60)
-                await bot.create_bot_state_file()  # Actualizar estado
+                await bot.create_bot_state_file()  # Update state
     finally:
         await bot.shutdown()
 
@@ -351,7 +354,8 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("🛑 Salida manual")
+        logger.info("🛑 Manual exit")
     except Exception as e:
-        logger.error(f"❌ Error fatal: {e}")
+        logger.error(f"❌ Fatal error: {e}")
         traceback.print_exc()
+```
