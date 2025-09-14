@@ -1,13 +1,10 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import time
 import json
 import os
-import asyncio
 from datetime import datetime, timedelta
 import logging
 from pathlib import Path
@@ -16,7 +13,6 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("StreamlitApp")
 
-# Configuración de página
 st.set_page_config(
     page_title="🧠 PAPA-DINERO - AI Crypto Bot",
     page_icon="🤖",
@@ -24,112 +20,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Crear directorios si no existen
 os.makedirs('modules', exist_ok=True)
 os.makedirs('data', exist_ok=True)
 
-# CSS mejorado para Render
+# CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-    
-    .main-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        font-family: 'Orbitron', monospace;
-    }
-    
-    .ai-prediction {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        padding: 1.5rem;
-        border-radius: 12px;
-        color: white;
-        margin: 1rem 0;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-    }
-    
-    .never-sell-loss {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 1.5rem;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        font-size: 1.2rem;
-        font-weight: bold;
-        margin: 1rem 0;
-        font-family: 'Orbitron', monospace;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        animation: glow 3s ease-in-out infinite alternate;
-    }
-    
-    .profit-card {
-        background: linear-gradient(135deg, #00C851 0%, #00ff88 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        color: white;
-        margin: 0.5rem;
-        text-align: center;
-        font-family: 'Orbitron', monospace;
-    }
-    
-    .loss-card {
-        background: linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        color: #333;
-        margin: 0.5rem;
-        text-align: center;
-        font-family: 'Orbitron', monospace;
-    }
-    
-    .ai-brain {
-        background: #1a1a2e;
-        color: #0ff1ce;
-        padding: 1.5rem;
-        border-radius: 15px;
-        border: 2px solid #0ff1ce;
-        margin: 1rem 0;
-        font-family: 'Orbitron', monospace;
-        animation: glow-ai 3s ease-in-out infinite alternate;
-    }
-    
-    .credentials-setup {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        color: white;
-        margin: 1rem 0;
-        font-family: 'Orbitron', monospace;
-    }
-    
-    @keyframes glow {
-        from { box-shadow: 0 0 10px #f5576c, 0 0 20px #f5576c, 0 0 30px #f5576c; }
-        to { box-shadow: 0 0 20px #f5576c, 0 0 30px #f5576c, 0 0 40px #f5576c; }
-    }
-    
-    @keyframes glow-ai {
-        from { box-shadow: 0 0 10px #0ff1ce, 0 0 20px #0ff1ce; }
-        to { box-shadow: 0 0 20px #0ff1ce, 0 0 30px #0ff1ce; }
-    }
-    
-    .metric-card {
-        background: rgba(255,255,255,0.1);
-        backdrop-filter: blur(10px);
-        padding: 1.5rem;
-        border-radius: 15px;
-        border: 1px solid rgba(255,255,255,0.2);
-        margin: 1rem 0;
-    }
-    
-    .status-healthy { color: #00C851; }
-    .status-warning { color: #ffbb33; }
-    .status-error { color: #ff4444; }
+    .main-header {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding: 2rem;border-radius: 15px;color: white;text-align: center;margin-bottom: 2rem;box-shadow: 0 10px 40px rgba(0,0,0,0.3);font-family: 'Orbitron', monospace;}
+    .never-sell-loss {background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);padding: 1.5rem;border-radius: 15px;color: white;text-align: center;font-size: 1.2rem;font-weight: bold;margin: 1rem 0;font-family: 'Orbitron', monospace;letter-spacing: 2px;text-transform: uppercase;animation: glow 3s ease-in-out infinite alternate;}
+    .ai-brain {background: #1a1a2e;color: #0ff1ce;padding: 1.5rem;border-radius: 15px;border: 2px solid #0ff1ce;margin: 1rem 0;font-family: 'Orbitron', monospace;animation: glow-ai 3s ease-in-out infinite alternate;}
+    @keyframes glow {from { box-shadow: 0 0 10px #f5576c, 0 0 20px #f5576c, 0 0 30px #f5576c; }to { box-shadow: 0 0 20px #f5576c, 0 0 30px #f5576c, 0 0 40px #f5576c; }}
+    @keyframes glow-ai {from { box-shadow: 0 0 10px #0ff1ce, 0 0 20px #0ff1ce; }to { box-shadow: 0 0 20px #0ff1ce, 0 0 30px #0ff1ce; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -138,13 +40,11 @@ try:
     from modules.credentials_manager import CredentialsManager
     credentials_manager = CredentialsManager()
 except ImportError:
-    # Crear gestor básico si no existe el módulo
     class BasicCredentialsManager:
         def __init__(self):
             self.data_dir = Path('data')
             self.data_dir.mkdir(exist_ok=True)
             self.credentials_file = self.data_dir / 'credentials.json'
-        
         def save_credentials(self, api_key, api_secret, paper_trading=True):
             try:
                 credentials = {
@@ -159,7 +59,6 @@ except ImportError:
             except Exception as e:
                 st.error(f"Error guardando credenciales: {e}")
                 return False
-        
         def load_credentials(self):
             try:
                 if self.credentials_file.exists():
@@ -170,15 +69,9 @@ except ImportError:
             except Exception as e:
                 st.error(f"Error cargando credenciales: {e}")
                 return None
-
     credentials_manager = BasicCredentialsManager()
 
-# =======================
-# INTERFAZ STREAMLIT
-# =======================
-
 st.markdown("<div class='main-header'><h1>🤖 PAPA-DINERO - AI Crypto Trading Bot</h1></div>", unsafe_allow_html=True)
-
 st.markdown("<div class='never-sell-loss'>💎 Estrategia: NUNCA VENDER EN PÉRDIDA - SIEMPRE GANANCIA</div>", unsafe_allow_html=True)
 
 # Panel para credenciales
@@ -200,26 +93,72 @@ with st.expander("🔑 Configuración de credenciales Alpaca", expanded=True):
                 else:
                     st.error("No se pudieron guardar las credenciales.")
 
-# Estado del bot
+# Test de conexión Alpaca
+st.markdown("## 🟢 Test de conexión Alpaca API")
+try:
+    import alpaca_trade_api as tradeapi
+except ImportError:
+    st.warning("El paquete alpaca-trade-api no está instalado. Añádelo a requirements.txt.")
+
+creds = credentials_manager.load_credentials()
+al_connected = False
+if creds:
+    api_key = creds['api_key']
+    api_secret = creds['api_secret']
+    base_url = "https://paper-api.alpaca.markets" if creds.get('paper_trading', True) else "https://api.alpaca.markets"
+    try:
+        api = tradeapi.REST(api_key, api_secret, base_url, api_version='v2')
+        account = api.get_account()
+        st.success(f"¡Conexión Alpaca exitosa! Estado de la cuenta: {account.status}")
+        st.json({
+            "account_id": account.id,
+            "buying_power": account.buying_power,
+            "equity": account.equity,
+            "status": account.status
+        })
+        al_connected = True
+    except Exception as e:
+        st.error(f"Error al conectar con Alpaca API: {e}")
+else:
+    st.warning("No hay credenciales guardadas para conectar con Alpaca.")
+
+# --- Panel Estado del bot y controles ---
 bot_state_file = Path('data') / 'bot_state.json'
-bot_state = {}
+
 if bot_state_file.exists():
     with open(bot_state_file, 'r') as f:
         bot_state = json.load(f)
+else:
+    bot_state = {"running": False, "last_action": None, "alpaca_connected": al_connected}
+
+st.markdown("<h2>🕹️ Control del Bot</h2>", unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("▶️ Iniciar Bot"):
+        bot_state["running"] = True
+        bot_state["last_action"] = f"Iniciado el {datetime.now()}"
+        bot_state["alpaca_connected"] = al_connected
+        with open(bot_state_file, 'w') as f:
+            json.dump(bot_state, f, indent=2)
+        st.success("Bot iniciado")
+with col2:
+    if st.button("⏸️ Pausar Bot"):
+        bot_state["running"] = False
+        bot_state["last_action"] = f"Pausado el {datetime.now()}"
+        bot_state["alpaca_connected"] = al_connected
+        with open(bot_state_file, 'w') as f:
+            json.dump(bot_state, f, indent=2)
+        st.warning("Bot pausado")
 
 st.markdown("<h2>📊 Estado actual del bot</h2>", unsafe_allow_html=True)
-if bot_state:
-    st.json(bot_state)
-else:
-    st.warning("No se ha inicializado el bot aún. Ejecuta el bot principal para comenzar.")
+st.json(bot_state)
 
-# Placeholder para panel visual
+# --- Panel visual demo ---
 st.markdown("<h2>📈 Panel de Trading y Predicciones</h2>", unsafe_allow_html=True)
 st.info("Esta sección mostrará métricas, gráficos y predicciones de trading en tiempo real cuando el bot esté en ejecución.")
 
-# Ejemplo demo de gráfico
 demo_data = pd.DataFrame({
-    "Time": pd.date_range(datetime.now() - timedelta(hours=10), periods=10, freq="H"),
+    "Time": pd.date_range(datetime.now() - timedelta(hours=10), periods=10, freq="h"),
     "BTCUSD": np.random.normal(44000, 500, 10),
     "ETHUSD": np.random.normal(3300, 80, 10),
 })
